@@ -202,19 +202,19 @@ def create_about(version:Version):
         raise HTTPException(status_code=422, detail="Version not complete, we miss some parameter.")
     
 @app.put('/about/{id}')
-def update_about(id:str,name:str = Body(...),version:str = Body(...),last:bool = Body(...)):
-    if name=="" or version=="":
+def update_about(id:str,version:Version):
+    if version.name=="" or version.version=="":
         raise HTTPException(status_code=422, detail="We miss parameter here")
     else :
         doc_ref = db.collection('about').document(id)
         doc = doc_ref.get()
         if doc.exists:
-            version = {
-                "name" : name,
-                "version" : version,
-                "last" : last
+            version_dict = {
+                "name" : version.name,
+                "version" : version.version,
+                "last" : version.last
             }
-            doc_ref.update(version)
+            doc_ref.update(version_dict)
             doc = doc_ref.get()
             return {"status" : "Success",
                 "version" : doc.to_dict()}
