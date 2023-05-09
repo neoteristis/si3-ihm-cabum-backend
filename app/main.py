@@ -203,7 +203,7 @@ def create_about(version:Version):
     
 @app.put('/about/{id}')
 def update_about(id:str,name:str = Body(...),version:str = Body(...),last:bool = Body(...)):
-    if not name or not version or not last:
+    if name=="" or version=="":
         raise HTTPException(status_code=422, detail="We miss parameter here")
     else :
         doc_ref = db.collection('about').document(id)
