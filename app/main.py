@@ -5,20 +5,11 @@ from google.cloud.firestore_v1.field_path import FieldPath
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
-from pydantic import BaseModel
-
-import math
-import json
 
 from .models.version import Version
+from .models.accident import Accident
 
-class Accident(BaseModel):
-    accidentType:str
-    description:str
-    image:str
-    latitude:float
-    longitude:float
-
+from .utils import haversine
 
 description = """
 IHMWebService API helps you do store details about incident. 🚀
@@ -33,45 +24,9 @@ cred = credentials.Certificate('./ihmpolytech-15b17-firebase-adminsdk-xhoym-6f66
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
-def haversine(lat1, lon1, lat2, lon2):
-    """
-    Calculate the distance between two points on the Earth's surface using the Haversine formula.
-    
-    Args:
-    - lat1, lon1: Latitude and longitude of the first point in decimal degrees.
-    - lat2, lon2: Latitude and longitude of the second point in decimal degrees.
-    
-    Returns:
-    - The distance between the two points in kilometers.
-    """
-    if lat1 is None or lon1 is None or lat2 is None or lon2 is None:
-        print("One of the latitude/longitude values is None.")
-        return None
-    
-    R = 6371  # Radius of the Earth in kilometers
-    
-    # Convert latitude and longitude to radians
-    lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
-    
-    # Calculate the differences between the latitudes and longitudes
-    dlat = lat2 - lat1
-    dlon = lon2 - lon1
-    
-    # Calculate the square of half the chord length between the points
-    a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
-    
-    # Calculate the angular distance in radians
-    c = 2 * math.asin(math.sqrt(a))
-    
-    # Calculate the distance in kilometers
-    d = R * c
-    
-    return d
-
 # Endpoint / : Contains only a hello world
 @app.get("/")
 def read_root():
-    
     return {"Hello": "World"}
 
 # Endpoint /accident : Get an accident by this ID
@@ -89,19 +44,23 @@ def read_accident(id:str):
 # - query parameter latitude allow us to filter the distance of accident we want, only if latitude, longitude AND maxDistance are not null
 # - query parameter longitude allow us to filter the distance of accident we want, only if latitude, longitude AND maxDistance are not null
 # - query parameter distance allow us to filter the distance of accident we want, only if latitude, longitude AND maxDistance are not null
-@app.get("/accidents")
+@app.get("/accident")
 def read_accidents(accidentType: str = None, latitude: float = None, longitude: float = None, maxDistance: float = None):
     accidents_ref = db.collection('accidents')
     
     if accidentType :
         accidents_ref = accidents_ref.where("accidentType",'==',accidentType)
     
-    results = [doc.to_dict() for doc in accidents_ref.stream()]
+    results = []
+    for doc in accidents_ref.stream():
+        accident=doc.to_dict()
+        accident["id"]=doc.id
+        results.append(accident)
     
     if latitude and longitude and maxDistance :
         results = [result for result in results if haversine(latitude, longitude, result.get('latitude'), result.get('longitude')) <= maxDistance]
     
-    return {'accidents': results}
+    return {'arrays': results}
 
 
 # Endpoint /accident : Create an accident (return ID)
@@ -116,7 +75,7 @@ def create_accident(accident:Accident):
     }
     if accident.accidentType and accident.description and accident.image and accident.latitude and accident.longitude :
         update_time, id = db.collection('accidents').add(accident_item)
-        return {"accident_id":id.id}
+        return {"id":id.id}
     else :
         raise HTTPException(status_code=422, detail="Accident not complete, we miss some parameter.")
 
@@ -189,14 +148,75 @@ def patch_accident(id:str, accidentType:str = Body(None), description:str = Body
         raise HTTPException(status_code=404, detail="Accident not found")
 
 @app.get("/about")
-def read_about():
-    doc_ref = db.collection(u'about').document(u'MW1ID0klidAoWN7tVJK4')
+def read_all_about():
+    doc_ref = db.collection(u'about')
+    results = []
+    for doc in doc_ref.stream():
+        version = doc.to_dict()
+        results.append({
+            "id" : doc.id,
+            "name" : version["name"],
+            "version" : version["version"],
+            "last" : version["last"]
+        })
+    return {"arrays" : results}
+    
+@app.get('/about/{id}')
+def read_about(id:str):
+    doc_ref = db.collection(u'about').document(id)
     doc = doc_ref.get()
     if doc.exists:
-        version = Version.from_dict(doc.to_dict())
+        version = doc.to_dict()
         return {
-            "name" : version.name,
-            "version" : version.version
+            "id" : doc.id,
+            "name" : version["name"],
+            "version" : version["version"],
+            "last" : version["last"]
         }
     else:
         raise HTTPException(status_code=404, detail="Item not found")
+    
+@app.delete('/about/{id}')
+def delete_accident(id:str):
+    doc_ref = db.collection('about').document(id)
+    doc = doc_ref.get()
+    if doc.exists:
+        doc_ref.delete()
+        return {
+            "status" : "Deleted Succesfully"
+        }
+    else :
+        raise HTTPException(status_code=404, detail="About not found")
+    
+@app.post('/about')
+def create_accident(version:Version):
+    version_item = {
+        "name" : version.name,
+        "version" : version.version,
+        "last" : version.last
+    }
+    if version.name and version.version and version.last :
+        update_time, id = db.collection('about').add(version_item)
+        return {"id":id.id}
+    else :
+        raise HTTPException(status_code=422, detail="Version not complete, we miss some parameter.")
+    
+@app.put('/about/{id}')
+def update_accident(id:str,name:str = Body(...),version:str = Body(...),last:bool = Body(...)):
+    if not name or not version or not last:
+        raise HTTPException(status_code=422, detail="We miss parameter here")
+    else :
+        doc_ref = db.collection('about').document(id)
+        doc = doc_ref.get()
+        if doc.exists:
+            version = {
+                "name" : name,
+                "version" : version,
+                "last" : last
+            }
+            doc_ref.update(version)
+            doc = doc_ref.get()
+            return {"status" : "Success",
+                "accident" : doc.to_dict()}
+        else :
+            raise HTTPException(status_code=404, detail="Version not found")
