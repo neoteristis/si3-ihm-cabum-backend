@@ -177,7 +177,7 @@ def read_about(id:str):
         raise HTTPException(status_code=404, detail="Item not found")
     
 @app.delete('/about/{id}')
-def delete_accident(id:str):
+def delete_about(id:str):
     doc_ref = db.collection('about').document(id)
     doc = doc_ref.get()
     if doc.exists:
@@ -189,7 +189,7 @@ def delete_accident(id:str):
         raise HTTPException(status_code=404, detail="About not found")
     
 @app.post('/about')
-def create_accident(version:Version):
+def create_about(version:Version):
     version_item = {
         "name" : version.name,
         "version" : version.version,
@@ -202,7 +202,7 @@ def create_accident(version:Version):
         raise HTTPException(status_code=422, detail="Version not complete, we miss some parameter.")
     
 @app.put('/about/{id}')
-def update_accident(id:str,name:str = Body(...),version:str = Body(...),last:bool = Body(...)):
+def update_about(id:str,name:str = Body(...),version:str = Body(...),last:bool = Body(...)):
     if not name or not version or not last:
         raise HTTPException(status_code=422, detail="We miss parameter here")
     else :
@@ -217,6 +217,6 @@ def update_accident(id:str,name:str = Body(...),version:str = Body(...),last:boo
             doc_ref.update(version)
             doc = doc_ref.get()
             return {"status" : "Success",
-                "accident" : doc.to_dict()}
+                "version" : doc.to_dict()}
         else :
             raise HTTPException(status_code=404, detail="Version not found")
