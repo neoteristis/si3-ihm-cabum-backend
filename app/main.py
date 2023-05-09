@@ -195,7 +195,7 @@ def create_about(version:Version):
         "version" : version.version,
         "last" : version.last
     }
-    if version.name and version.version and version.last :
+    if version.name!="" and version.version!="":
         update_time, id = db.collection('about').add(version_item)
         return {"id":id.id}
     else :
