@@ -71,7 +71,8 @@ def create_accident(accident:Accident):
         'description': accident.description,
         'image': accident.image,
         'latitude': accident.latitude,
-        'longitude': accident.longitude
+        'longitude': accident.longitude,
+        'date' : accident.date
     }
     if accident.accidentType and accident.description and accident.image and accident.latitude and accident.longitude :
         update_time, id = db.collection('accidents').add(accident_item)
@@ -81,8 +82,8 @@ def create_accident(accident:Accident):
 
 # Endpoint /accident : update an accident (all fields) by ID
 @app.put('/accident/{id}')
-def update_accident(id:str,accidentType:str = Body(...),description:str = Body(...),image:str = Body(...),latitude:float = Body(...),longitude:float = Body(...)):
-    if not accidentType or not description or not image or not latitude or not longitude :
+def update_accident(id:str,accidentType:str = Body(...),description:str = Body(...),image:str = Body(...),latitude:float = Body(...),longitude:float = Body(...),date:str = Body(...)):
+    if not accidentType or not description or not image or not latitude or not longitude or not date:
         raise HTTPException(status_code=422, detail="We miss parameter here")
     else :
         doc_ref = db.collection('accidents').document(id)
@@ -93,7 +94,8 @@ def update_accident(id:str,accidentType:str = Body(...),description:str = Body(.
                 'description': description,
                 'image': image,
                 'latitude': latitude,
-                'longitude': longitude
+                'longitude': longitude,
+                'date': date
             }
             doc_ref.update(accident)
             doc = doc_ref.get()
@@ -117,7 +119,7 @@ def delete_accident(id:str):
 
 # Endpoint /accident : update an accident one or multiple fields by ID
 @app.patch('/accident/{id}')
-def patch_accident(id:str, accidentType:str = Body(None), description:str = Body(None), image: str= Body(None), latitude:float=Body(None),longitude:float=Body(None)):
+def patch_accident(id:str, accidentType:str = Body(None), description:str = Body(None), image: str= Body(None), latitude:float=Body(None),longitude:float=Body(None), date:str=Body(None)):
     doc_ref = db.collection('accidents').document(id)
     doc = doc_ref.get()
     if doc.exists:
@@ -140,6 +142,10 @@ def patch_accident(id:str, accidentType:str = Body(None), description:str = Body
         if longitude :
             doc_ref.update({
                 u'longitude' : longitude
+            })
+        if date:
+            doc_ref.update({
+                u'date' : date
             })
         doc = doc_ref.get()
         return {"status" : "Success",

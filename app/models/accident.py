@@ -6,3 +6,4 @@ class Accident(BaseModel):
     image:str
     latitude:float
     longitude:float
+    date:str
