@@ -7,3 +7,4 @@ class Accident(BaseModel):
     latitude:float
     longitude:float
     date:str
+    numberOfApproval:int

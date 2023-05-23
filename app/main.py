@@ -45,7 +45,7 @@ def read_accident(id:str):
 # - query parameter longitude allow us to filter the distance of accident we want, only if latitude, longitude AND maxDistance are not null
 # - query parameter distance allow us to filter the distance of accident we want, only if latitude, longitude AND maxDistance are not null
 @app.get("/accident")
-def read_accidents(accidentType: str = None, latitude: float = None, longitude: float = None, maxDistance: float = None):
+def read_accidents(accidentType: str = None, latitude: float = None, longitude: float = None, maxDistance: float = None, numberOfApproval: int = None):
     accidents_ref = db.collection('accidents')
     
     if accidentType :
@@ -72,7 +72,8 @@ def create_accident(accident:Accident):
         'image': accident.image,
         'latitude': accident.latitude,
         'longitude': accident.longitude,
-        'date' : accident.date
+        'date' : accident.date,
+        'numberOfApproval' : accident.numberOfApproval
     }
     if accident.accidentType and accident.description and accident.image and accident.latitude and accident.longitude :
         update_time, id = db.collection('accidents').add(accident_item)
@@ -82,8 +83,8 @@ def create_accident(accident:Accident):
 
 # Endpoint /accident : update an accident (all fields) by ID
 @app.put('/accident/{id}')
-def update_accident(id:str,accidentType:str = Body(...),description:str = Body(...),image:str = Body(...),latitude:float = Body(...),longitude:float = Body(...),date:str = Body(...)):
-    if not accidentType or not description or not image or not latitude or not longitude or not date:
+def update_accident(id:str,accidentType:str = Body(...),description:str = Body(...),image:str = Body(...),latitude:float = Body(...),longitude:float = Body(...),date:str = Body(...),numberOfApproval:int=Body(...)):
+    if not accidentType or not description or not image or not latitude or not longitude or not date or not numberOfApproval:
         raise HTTPException(status_code=422, detail="We miss parameter here")
     else :
         doc_ref = db.collection('accidents').document(id)
@@ -95,7 +96,8 @@ def update_accident(id:str,accidentType:str = Body(...),description:str = Body(.
                 'image': image,
                 'latitude': latitude,
                 'longitude': longitude,
-                'date': date
+                'date': date,
+                'numberOfApproval' : numberOfApproval
             }
             doc_ref.update(accident)
             doc = doc_ref.get()
@@ -119,7 +121,7 @@ def delete_accident(id:str):
 
 # Endpoint /accident : update an accident one or multiple fields by ID
 @app.patch('/accident/{id}')
-def patch_accident(id:str, accidentType:str = Body(None), description:str = Body(None), image: str= Body(None), latitude:float=Body(None),longitude:float=Body(None), date:str=Body(None)):
+def patch_accident(id:str, accidentType:str = Body(None), description:str = Body(None), image: str= Body(None), latitude:float=Body(None),longitude:float=Body(None), date:str=Body(None), numberOfApproval:int=Body(None)):
     doc_ref = db.collection('accidents').document(id)
     doc = doc_ref.get()
     if doc.exists:
@@ -146,6 +148,10 @@ def patch_accident(id:str, accidentType:str = Body(None), description:str = Body
         if date:
             doc_ref.update({
                 u'date' : date
+            })
+        if numberOfApproval:
+            doc_ref.update({
+                u'numberOfApproval' : numberOfApproval
             })
         doc = doc_ref.get()
         return {"status" : "Success",
