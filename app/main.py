@@ -84,7 +84,7 @@ def create_accident(accident:Accident):
 # Endpoint /accident : update an accident (all fields) by ID
 @app.put('/accident/{id}')
 def update_accident(id:str,accidentType:str = Body(...),description:str = Body(...),image:str = Body(...),latitude:float = Body(...),longitude:float = Body(...),date:str = Body(...),numberOfApproval:int=Body(...)):
-    if not accidentType or not description or not image or not latitude or not longitude or not date or not numberOfApproval:
+    if not accidentType or not description or not image or not latitude or not longitude or not date:
         raise HTTPException(status_code=422, detail="We miss parameter here")
     else :
         doc_ref = db.collection('accidents').document(id)
