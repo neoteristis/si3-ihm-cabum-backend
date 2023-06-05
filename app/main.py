@@ -8,6 +8,7 @@ from firebase_admin import firestore
 
 from .models.version import Version
 from .models.accident import Accident
+from .models.fcm import FCM
 
 from .utils import haversine
 
@@ -232,3 +233,41 @@ def update_about(id:str,version:Version):
                 "version" : doc.to_dict()}
         else :
             raise HTTPException(status_code=404, detail="Version not found")
+        
+@app.post('/fcm')
+def create_fcm(fcm:FCM):
+    if fcm.token == "":
+        raise HTTPException(status_code=422, detail="We miss parameter here")
+    else:
+        fcm_item = {
+        "token" : fcm.token,
+        }
+        update_time, id = db.collection('fcm').add(fcm_item)
+        return {"id":id.id}
+
+def internal_fcm():
+    doc_ref = db.collection(u'fcm')
+    results = []
+    for doc in doc_ref.stream():
+        fcm = doc.to_dict()
+        results.append({
+            "id" : doc.id,
+            "token" : fcm["token"]
+        })
+    return results
+
+@app.get('/fcm')
+def list_fcm():
+    return {"arrays" : internal_fcm}
+
+@app.delete('/fcm')
+def delete_fcm():
+    res=internal_fcm()
+    for i in res:
+        doc_ref = db.collection('fcm').document(i["id"])
+        doc = doc_ref.get()
+        if doc.exists:
+            doc_ref.delete()
+    return {
+            "status" : "Deleted Succesfully"
+        }
