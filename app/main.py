@@ -8,9 +8,10 @@ from firebase_admin import firestore
 
 from .models.version import Version
 from .models.accident import Accident
-from .models.fcm import FCM
+from .models.fcm import FCM,FCMTest
 
-from .utils import haversine
+from .utils.messaging import sendNotification
+from .utils.gps import haversine
 
 description = """
 IHMWebService API helps you do store details about incident. 🚀
@@ -22,7 +23,7 @@ app = FastAPI(title="IHMWebServiceApp",
 
 cred = credentials.Certificate('./ihmpolytech-15b17-firebase-adminsdk-xhoym-6f6672a5ab.json')
 
-firebase_admin.initialize_app(cred)
+firebase_app=firebase_admin.initialize_app(cred)
 db = firestore.client()
 
 # Endpoint / : Contains only a hello world
@@ -63,6 +64,13 @@ def read_accidents(accidentType: str = None, latitude: float = None, longitude: 
     
     return {'arrays': results}
 
+def dispatchNewAccident(accident):
+    try:
+        allTokens=internal_fcm()
+        for token in allTokens:
+            sendNotification(firebase_app, "A new accident", accident['description'], token["token"])
+    except:
+        pass
 
 # Endpoint /accident : Create an accident (return ID)
 @app.post('/accident')
@@ -78,6 +86,7 @@ def create_accident(accident:Accident):
     }
     if accident.accidentType and accident.description and accident.image and accident.latitude and accident.longitude :
         update_time, id = db.collection('accidents').add(accident_item)
+        dispatchNewAccident(accident_item)
         return {"id":id.id}
     else :
         raise HTTPException(status_code=422, detail="Accident not complete, we miss some parameter.")
@@ -234,16 +243,25 @@ def update_about(id:str,version:Version):
         else :
             raise HTTPException(status_code=404, detail="Version not found")
         
+def checkExistFCM(token:str):
+    allToken=internal_fcm()
+    for iToken in allToken:
+        if iToken["token"] == token:
+            return False
+    return True
+        
 @app.post('/fcm')
 def create_fcm(fcm:FCM):
     if fcm.token == "":
         raise HTTPException(status_code=422, detail="We miss parameter here")
     else:
-        fcm_item = {
-        "token" : fcm.token,
-        }
-        update_time, id = db.collection('fcm').add(fcm_item)
-        return {"id":id.id}
+        if checkExistFCM(fcm.token):
+            fcm_item = {
+            "token" : fcm.token,
+            }
+            update_time, id = db.collection('fcm').add(fcm_item)
+            return {"id":id.id}
+        return {"id" : "null"}
 
 def internal_fcm():
     doc_ref = db.collection(u'fcm')
@@ -271,3 +289,8 @@ def delete_fcm():
     return {
             "status" : "Deleted Succesfully"
         }
+    
+@app.post('/fcm/notif')
+def test_notif(fcmTest:FCMTest):
+    sendNotification(firebase_app, fcmTest.title, fcmTest.body, fcmTest.token)
+    return {}
