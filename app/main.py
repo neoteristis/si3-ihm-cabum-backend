@@ -258,7 +258,7 @@ def internal_fcm():
 
 @app.get('/fcm')
 def list_fcm():
-    return {"arrays" : internal_fcm}
+    return {"arrays" : internal_fcm()}
 
 @app.delete('/fcm')
 def delete_fcm():
