@@ -69,9 +69,14 @@ def dispatchNewAccident(accident):
     try:
         allTokens=internal_fcm()
         for token in allTokens:
-            sendNotification(firebase_app, "A new accident", accident['description'], token["token"], accident)
-    except:
-        pass
+            sendNotification(firebase_app, "A new accident", accident['description'], token["token"], {
+                "accidentType" : str(accident["accidentType"]),
+                "description" : str(accident["description"]),
+                "latitude" : str(accident["latitude"]),
+                "longitude" : str(accident["longitude"])
+            })
+    except Exception as e:
+        print(e)
 
 # Endpoint /accident : Create an accident (return ID)
 @app.post('/accident')
