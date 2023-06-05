@@ -65,10 +65,11 @@ def read_accidents(accidentType: str = None, latitude: float = None, longitude: 
     return {'arrays': results}
 
 def dispatchNewAccident(accident):
+    accident["image"] = ""
     try:
         allTokens=internal_fcm()
         for token in allTokens:
-            sendNotification(firebase_app, "A new accident", accident['description'], token["token"])
+            sendNotification(firebase_app, "A new accident", accident['description'], token["token"], accident)
     except:
         pass
 
@@ -292,5 +293,7 @@ def delete_fcm():
     
 @app.post('/fcm/notif')
 def test_notif(fcmTest:FCMTest):
-    sendNotification(firebase_app, fcmTest.title, fcmTest.body, fcmTest.token)
+    sendNotification(firebase_app, fcmTest.title, fcmTest.body, fcmTest.token, data={
+        "test" : "valeur"
+    })
     return {}
