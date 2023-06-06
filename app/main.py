@@ -69,12 +69,15 @@ def dispatchNewAccident(accident):
     try:
         allTokens=internal_fcm()
         for token in allTokens:
-            sendNotification(firebase_app, "A new accident", accident['description'], token["token"], {
-                "accidentType" : str(accident["accidentType"]),
-                "description" : str(accident["description"]),
-                "latitude" : str(accident["latitude"]),
-                "longitude" : str(accident["longitude"])
-            })
+            try:
+                sendNotification(firebase_app, "A new accident", accident['description'], token["token"], {
+                    "accidentType" : str(accident["accidentType"]),
+                    "description" : str(accident["description"]),
+                    "latitude" : str(accident["latitude"]),
+                    "longitude" : str(accident["longitude"])
+                })
+            except Exception as e:
+                print(e)
     except Exception as e:
         print(e)
 
